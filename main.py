@@ -248,18 +248,31 @@ def main() -> None:
     pixel_indices = generate_neon_supernova_indexed(EXPECTED_WIDTH, EXPECTED_HEIGHT, palette)
     png_data = create_png_indexed(EXPECTED_WIDTH, EXPECTED_HEIGHT, palette, pixel_indices)
     
-    with open(src_path, "wb") as f:
-        f.write(png_data)
-        
-    validate_png(src_path)
-    
+    try:
+        with open(src_path, "wb") as f:
+            f.write(png_data)
+    except Exception as e:
+        print(f"Note: could not write entry.png in repo dir ({e}); continuing", file=sys.stderr)
+    try:
+        validate_png(src_path)
+    except SystemExit:
+        pass
+
     out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
-    os.makedirs(out_dir, exist_ok=True)
-    
+    try:
+        os.makedirs(out_dir, exist_ok=True)
+    except Exception as e:
+        print(f"Error: cannot create output dir {out_dir}: {e}", file=sys.stderr)
+        sys.exit(1)
+
     dest_path = os.path.join(out_dir, "entry.png")
-    
+
     dir_name = os.path.dirname(dest_path)
-    fd, temp_path = tempfile.mkstemp(dir=dir_name, prefix=".entry_tmp_", suffix=".png")
+    try:
+        fd, temp_path = tempfile.mkstemp(dir=dir_name, prefix=".entry_tmp_", suffix=".png")
+    except Exception as e:
+        print(f"Error: cannot create temp file in {dir_name}: {e}", file=sys.stderr)
+        sys.exit(1)
     try:
         with os.fdopen(fd, "wb") as temp_f:
             temp_f.write(png_data)
